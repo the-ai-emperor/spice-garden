@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     description: "Premium Indian dining delivered to your door. Order via WhatsApp.",
     type: "website",
   },
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({

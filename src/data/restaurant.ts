@@ -18,7 +18,7 @@ export const restaurant = {
   tagline: "Authentic Indian Flavors, Delivered Fresh",
   description:
     "Spice Garden has been serving authentic Indian cuisine since 2010. We use the finest spices, freshest ingredients, and traditional recipes passed down through generations to deliver an unforgettable dining experience — right to your doorstep.",
-  logoUrl: "", // Place your logo URL here, e.g. "/logo.png" or a CDN link
+  logoUrl: "/logo.png", // Place your logo URL here, e.g. "/logo.png" or a CDN link
 
   /* ── Contact ── */
   phone: "+917734865267",

@@ -5,7 +5,7 @@ export const cocaCola: Product = {
   name: "Coca-cola",
   shortName: "Coca-cola",
   price: 40,
-  thumbnail: "/drinks/coke-lg.jpeg",
+  thumbnail: "/drinks/coke-sm.jpeg",
   gallery: ["/drinks/coke-lg.jpeg", "/drinks/coke-md.jpeg", "/drinks/coke-sm.jpeg", "/drinks/coke-xl.jpeg"],
 
   description: "Delicious Coca-cola from our Cold Drinks selection.",
