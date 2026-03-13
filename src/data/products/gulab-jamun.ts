@@ -1,19 +1,15 @@
 import type { Product } from "./types";
 
-export const gulabjamun: Product = {
+export const gulabJamun: Product = {
   slug: "gulab-jamun",
-  name: "Gulab Jamun (4 pcs)",
+  name: "Gulab Jamun",
   shortName: "Gulab Jamun",
-  price: 129,
-  thumbnail: "https://images.unsplash.com/photo-1666190092159-3171cf0fbb12?w=600&q=80",
-  gallery: [
-    "https://images.unsplash.com/photo-1666190092159-3171cf0fbb12?w=600&q=80"
-  ],
-  description:
-    "Soft, melt-in-your-mouth khoya dumplings soaked in a warm rose-cardamom sugar syrup. Served in a beautiful earthen bowl, garnished with pistachios. A timeless Indian dessert to conclude your meal on a sweet note.",
-  category: "Desserts",
-  tags: ["veg", "dessert", "sweet", "gulab-jamun", "traditional"],
-  badge: "Sweet Ending",
+  price: 200,
+  thumbnail: "/sweets/gulab-jamun-1.jpeg",
+  gallery: ["https://images.unsplash.com/photo-1563805042-7684c8a9e9ce?w=600&q=80"],
+  description: "Delicious Gulab Jamun from our Sweets selection.",
+  category: "Sweets",
+  tags: ["sweet", "dessert", "indian sweet", "traditional", "khoya"],
   popular: false,
-  featured: false,
+  featured: false
 };
