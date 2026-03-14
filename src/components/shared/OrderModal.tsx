@@ -56,6 +56,10 @@ export default function OrderModal({ isOpen, onClose }: OrderModalProps) {
   };
 
   const handleOrder = () => {
+    if (!navigator.onLine) {
+      setLocError("Please enable internet to order.");
+      return;
+    }
     if (location.trim().length < 10) {
       setLocError("Please provide a delivery location (min 10 characters).");
       return;

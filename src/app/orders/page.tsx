@@ -43,6 +43,10 @@ function OrderAgainModal({
   };
 
   const handleOrder = () => {
+    if (!navigator.onLine) {
+      setError("Please enable internet to order.");
+      return;
+    }
     if (location.trim().length < 8) {
       setError("Please provide a delivery location.");
       return;

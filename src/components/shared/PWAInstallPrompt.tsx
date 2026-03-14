@@ -8,7 +8,9 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+const DENIED_KEY = 'pwa-deny';
 const DISMISSED_KEY = 'pwa-dismissed';
+const CACHE_CLEAR_KEY = 'pwa-last-cache-clear';
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
@@ -23,6 +25,19 @@ export default function PWAInstallPrompt() {
         .catch((err) => console.error('SW registration failed:', err));
     }
 
+    // Clear old caches daily
+    const today = new Date().toDateString();
+    if (localStorage.getItem(CACHE_CLEAR_KEY) !== today) {
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          for (const name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+      localStorage.setItem(CACHE_CLEAR_KEY, today);
+    }
+
     // Do not show if already in standalone (installed) mode
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
@@ -31,8 +46,9 @@ export default function PWAInstallPrompt() {
 
     if (isStandalone) return;
 
-    // Do not show if user previously dismissed
-    if (localStorage.getItem(DISMISSED_KEY) === 'true') return;
+    // Do not show if user previously denied permanently or dismissed today
+    if (localStorage.getItem(DENIED_KEY) === 'true') return;
+    if (localStorage.getItem(DISMISSED_KEY) === today) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -49,14 +65,20 @@ export default function PWAInstallPrompt() {
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      localStorage.setItem(DISMISSED_KEY, 'true');
+      localStorage.setItem(DENIED_KEY, 'true');
     }
     setDeferredPrompt(null);
     setVisible(false);
   };
 
   const handleDismiss = () => {
-    localStorage.setItem(DISMISSED_KEY, 'true');
+    const today = new Date().toDateString();
+    localStorage.setItem(DISMISSED_KEY, today);
+    setVisible(false);
+  };
+
+  const handleDeny = () => {
+    localStorage.setItem(DENIED_KEY, 'true');
     setVisible(false);
   };
 
@@ -67,26 +89,44 @@ export default function PWAInstallPrompt() {
       role="dialog"
       aria-modal="true"
       aria-label="Install Spice Garden"
-      style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        zIndex: 9999,
-        width: '320px',
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #111 100%)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '16px',
-        padding: '20px',
-        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-        animation: 'pwaSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-        color: '#fff',
-        fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)',
-      }}
+      className="pwa-prompt-container"
     >
       <style>{`
         @keyframes pwaSlideUp {
-          from { opacity: 0; transform: translateY(32px); }
+          from { opacity: 0; transform: translateY(100%); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pwa-prompt-container {
+          position: fixed;
+          z-index: 9999;
+          background: linear-gradient(135deg, #1a1a1a 0%, #111 100%);
+          color: #fff;
+          font-family: var(--font-geist-sans, system-ui, sans-serif);
+          padding: 20px;
+          box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+          animation: pwaSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+          
+          /* Mobile styles: Full width bottom sheet */
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          border-radius: 20px 20px 0 0;
+          border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        @media (min-width: 768px) {
+          .pwa-prompt-container {
+            /* Desktop styles: Fixed card at bottom right */
+            bottom: 24px;
+            right: 24px;
+            left: auto;
+            width: 320px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+          }
         }
       `}</style>
 
@@ -116,54 +156,82 @@ export default function PWAInstallPrompt() {
         lineHeight: 1.5,
         color: 'rgba(255,255,255,0.7)',
       }}>
-        Add Spice Garden to your home screen for a faster, app‑like experience.
+        Add Spice Garden to your home screen for a faster, offline-ready experience.
       </p>
 
       {/* Buttons */}
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleInstall}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #e8721c 0%, #c9540e 100%)',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            Install
+          </button>
+          <button
+            onClick={handleDismiss}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'transparent',
+              color: 'rgba(255,255,255,0.8)',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+              e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+            }}
+          >
+            Maybe Later
+          </button>
+        </div>
         <button
-          onClick={handleInstall}
+          onClick={handleDeny}
           style={{
-            flex: 1,
-            padding: '10px 0',
+            padding: '8px 0',
             borderRadius: '10px',
             border: 'none',
-            background: 'linear-gradient(135deg, #e8721c 0%, #c9540e 100%)',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '13px',
-            cursor: 'pointer',
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-        >
-          Install
-        </button>
-        <button
-          onClick={handleDismiss}
-          style={{
-            flex: 1,
-            padding: '10px 0',
-            borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.15)',
             background: 'transparent',
-            color: 'rgba(255,255,255,0.6)',
-            fontWeight: 600,
-            fontSize: '13px',
+            color: 'rgba(255,255,255,0.5)',
+            fontWeight: 500,
+            fontSize: '12px',
             cursor: 'pointer',
-            transition: 'border-color 0.15s, color 0.15s',
+            transition: 'color 0.15s',
+            textDecoration: 'underline',
+            textDecorationColor: 'rgba(255,255,255,0.2)'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
-            e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+            e.currentTarget.style.textDecorationColor = 'rgba(255,255,255,0.5)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-            e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+            e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+            e.currentTarget.style.textDecorationColor = 'rgba(255,255,255,0.2)';
           }}
         >
-          Maybe Later
+          Don't show again
         </button>
       </div>
     </div>

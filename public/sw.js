@@ -27,29 +27,27 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: cache-first strategy
+// Fetch: stale-while-revalidate strategy
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests and same-origin / CDN requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request)
-        .then((response) => {
-          // Cache valid responses from the same origin
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          // Cache valid responses from the same origin or CDN
           if (
-            response &&
-            response.status === 200 &&
-            response.type === 'basic'
+            networkResponse &&
+            networkResponse.status === 200 &&
+            (networkResponse.type === 'basic' || networkResponse.type === 'cors')
           ) {
-            const cloned = response.clone();
-            caches.open(CACHE_NAME).then((cache) =>
-              cache.put(event.request, cloned)
-            );
+            const clonedResponse = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clonedResponse);
+            });
           }
-          return response;
+          return networkResponse;
         })
         .catch(() => {
           // Offline fallback: return root page if navigating
@@ -57,6 +55,8 @@ self.addEventListener('fetch', (event) => {
             return caches.match('/');
           }
         });
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
